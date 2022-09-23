@@ -1,4 +1,5 @@
 import "virtual:windi.css";
+import is from "is_js";
 
 const urls = [
 	"https://www.mozilla.org/en-US/",
@@ -6,9 +7,9 @@ const urls = [
 ];
 
 // const favicon = document.querySelector("#favicon");
-const image = document.querySelector("#hero");
-const title = document.querySelector("h2");
-const desc = document.querySelector("p");
+const list = document.querySelector(".app");
+// const title = document.querySelector("h2");
+// const desc = document.querySelector("p");
 
 const isDefined = (item) => {
 	return item !== undefined && item !== null;
@@ -33,6 +34,23 @@ let descSources = [];
 // image sources
 let imgSources = [];
 
+const createLinkElement = (title, desc, img) => {
+	const link = `
+		<a
+			class="w-9/12 bg-gray-50 mx-auto my-4 flex justify-between rounded-lg shadow-lg px-8 py-6">
+			<img
+				class="w-28 h-28 mr-4 object-cover rounded-md"
+				src="${img}"
+				alt="" />
+			<div class="text-left flex items-start justify-start flex-col">
+				<h2 class="font-bold mb-2">${title}</h2>
+				<p>${desc}</p>
+			</div>
+		</a>
+	`
+
+	return link;
+}
 
 const getData = (url) => {
 	fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`)
@@ -53,10 +71,11 @@ const getData = (url) => {
 			imgSources.push(dom.querySelector("meta[property='og:image']").getAttribute("content"));
 			imgSources.push(dom.querySelector("meta[property='og:image']").getAttribute("content"));
 
-			title.textContent = isDefined(titleSources[0]) ? titleSources[0] : "";
-			desc.textContent = isDefined(descSources[0]) ? descSources[0] : "";
-			image.src = isDefined(imgSources[0]) ? imgSources[0] : "https://fakeimg.pl/300/";
+			let title = isDefined(titleSources[0]) ? titleSources[0] : "";
+			let desc = isDefined(descSources[0]) ? descSources[0] : "";
+			let img = isDefined(imgSources[0]) ? imgSources[0] : "https://fakeimg.pl/300/";
 
+			list.innerHTML += createLinkElement(title, desc, img)
 			// favicon.src = dom
 			// 	.querySelector("link[sizes='120x120']")
 			// 	.getAttribute("href");
@@ -68,5 +87,15 @@ const getData = (url) => {
 		});
 };
 
-getData(urls[0]);
+// getData(urls[0]);
 // urls.forEach((url) => getData(url));
+
+const input = document.querySelector("input")
+
+input.addEventListener("keyup", (e) => {
+	if (input.value && e.key == "Enter") {
+		if (is.url(input.value))
+			getData(input.value);
+		input.value = "";
+	}
+})
