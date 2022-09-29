@@ -115,7 +115,7 @@ const getData = (url) => {
 				...dom.querySelectorAll("link[rel='icon']")
 			].forEach((el) => {
 				if (el.href.startsWith(window.location.origin)) {
-					let imgLink = `${url}${el.getAttribute("href")}`;
+					let imgLink = `${window.location.origin}/${el.getAttribute("href")}`;
 					imgSources.push(imgLink);
 					return;
 				}
