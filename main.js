@@ -1,31 +1,23 @@
 import "virtual:windi.css";
 import is from "is_js";
 
+// dom elements
+const input = document.querySelector("input");
+const form = document.querySelector("form");
+const list = document.querySelector("#links");
+
+// list of links for testing
 const urls = [
-	"https://www.mozilla.org/en-US/",
+	"duckduckgo.com/",
+	"https://search.brave.com",
+	"https://www.firefox.com",
+	"www.oneminch.dev",
 	"https://onezero.medium.com/survival-of-the-richest-9ef6cddd0cc1"
 ];
 
-// const favicon = document.querySelector("#favicon");
-const list = document.querySelector(".app");
-// const title = document.querySelector("h2");
-// const desc = document.querySelector("p");
-
-const isDefined = (item) => {
-	return item !== undefined && item !== null;
-};
-
-// TODO: get all favicon sources and use as fallback
-// TODO: perform undefined/null check earlier on push 
-// TODO: loop thru possible value sources for each component: title, desc, image
-// TODO: prefer social media metadata - open graph / twitter cards
-// TODO: use defined && shorter content value
-// TODO: create each element dynamically
-// TODO: possibly switch to alpine or petite-vue
-// TODO: use input to generate preview dynamically
-// TODO: preview should be wrapped in `<a>` tag
-
+// dom parser
 let dom = new DOMParser();
+let listEmpty = true;
 
 // title sources
 let titleSources = [];
@@ -34,25 +26,42 @@ let descSources = [];
 // image sources
 let imgSources = [];
 
-const createLinkElement = (title, desc, img) => {
+// if element exists, returns wanted attribute value
+const getExistingAttribute = (dom, elementSelector, attr, list) => {
+	if (dom.querySelector(elementSelector)) {
+		list.push(dom.querySelector(elementSelector).getAttribute(attr));
+	}
+};
+
+const createLinkElement = (url, title, desc, img) => {
 	const link = `
 		<a
-			class="w-9/12 bg-gray-50 mx-auto my-4 flex justify-between rounded-lg shadow-lg px-8 py-6">
+			href="${url}"
+			class="w-full bg-blue-gray-50 my-4 flex justify-start rounded-lg shadow-lg px-8 py-6 focus:outline-none focus:ring-2 ring-purple-600 ring-opacity-50"
+			target="_blank" rel="noopener noreferrer"
+			>
 			<img
-				class="w-28 h-28 mr-4 object-cover rounded-md"
+				class="w-12 h-12 mr-4 object-cover rounded-md"
 				src="${img}"
-				alt="" />
+				alt="site image" />
 			<div class="text-left flex items-start justify-start flex-col">
 				<h2 class="font-bold mb-2">${title}</h2>
 				<p>${desc}</p>
 			</div>
 		</a>
-	`
+	`;
 
 	return link;
-}
+};
 
 const getData = (url) => {
+	// add https protocol to urls with none
+	const urlProtocol = new RegExp(/^https?:\/\//, "i");
+	if (!urlProtocol.test(url)) {
+		url = `https://${url}`;
+	}
+
+	// fetch link and create link element
 	fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`)
 		.then((response) => {
 			if (response.ok) return response.json();
@@ -62,40 +71,77 @@ const getData = (url) => {
 			const parser = new DOMParser();
 			dom = parser.parseFromString(data.contents, "text/html");
 
-			titleSources.push(dom.querySelector("title").textContent);
-			titleSources.push(dom.querySelector("meta[property='og:title']").getAttribute("content"));
+			// empty out all sources
+			titleSources = [];
+			descSources = [];
+			imgSources = [];
 
-			descSources.push(dom.querySelector("meta[name='description']").getAttribute("content"));
-			descSources.push(dom.querySelector("meta[property='og:description']").getAttribute("content"));
+			// collect title sources
+			getExistingAttribute(
+				dom,
+				"meta[property='og:title']",
+				"content",
+				titleSources
+			);
 
-			imgSources.push(dom.querySelector("meta[property='og:image']").getAttribute("content"));
-			imgSources.push(dom.querySelector("meta[property='og:image']").getAttribute("content"));
+			if (dom.querySelector("title")) {
+				titleSources.push(dom.querySelector("title").textContent);
+			}
 
-			let title = isDefined(titleSources[0]) ? titleSources[0] : "";
-			let desc = isDefined(descSources[0]) ? descSources[0] : "";
-			let img = isDefined(imgSources[0]) ? imgSources[0] : "https://fakeimg.pl/300/";
+			// collect description sources
+			getExistingAttribute(
+				dom,
+				"meta[property='og:description']",
+				"content",
+				descSources
+			);
+			getExistingAttribute(
+				dom,
+				"meta[name='description']",
+				"content",
+				descSources
+			);
 
-			list.innerHTML += createLinkElement(title, desc, img)
-			// favicon.src = dom
-			// 	.querySelector("link[sizes='120x120']")
-			// 	.getAttribute("href");
+			// collect image sources
+			getExistingAttribute(
+				dom,
+				"meta[property='og:image']",
+				"content",
+				imgSources
+			);
+
+			[
+				...dom.querySelectorAll("link[rel='apple-touch-icon']"),
+				...dom.querySelectorAll("link[rel='icon']")
+			].forEach((el) => {
+				if (el.href.startsWith(window.location.origin)) {
+					let imgLink = `${url}${el.getAttribute("href")}`;
+					imgSources.push(imgLink);
+					return;
+				}
+
+				imgSources.push(el.href);
+			});
+
+			let title = titleSources.length > 0 ? titleSources[0] : url;
+			let desc = descSources.length > 0 ? descSources[0] : "";
+			let img =
+				imgSources.length > 0 ? imgSources[0] : "https://fakeimg.pl/300/";
+
+			// prepend link element to page
+			let currList = list.innerHTML;
+			list.innerHTML = createLinkElement(url, title, desc, img) + currList;
 		})
 		.catch((err) => {
 			console.log(err);
-			console.log(titleSources, descSources, isDefined(imgSources[0]));
-			console.log("something went wrong");
+			console.log("Something went wrong");
 		});
 };
 
-// getData(urls[0]);
-// urls.forEach((url) => getData(url));
+urls.forEach((url) => getData(url));
 
-const input = document.querySelector("input")
-
-input.addEventListener("keyup", (e) => {
-	if (input.value && e.key == "Enter") {
-		if (is.url(input.value))
-			getData(input.value);
-		input.value = "";
-	}
-})
+form.addEventListener("submit", (e) => {
+	e.preventDefault();
+	if (is.url(input.value.trim())) getData(input.value.trim());
+	input.value = "";
+});
