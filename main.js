@@ -33,6 +33,17 @@ const getExistingAttribute = (dom, elementSelector, attr, list) => {
 	}
 };
 
+// change relative urls to absolute ones
+const absolutizeRelativeUrl = (imgUrl, linkUrl) => {
+	if (imgUrl.startsWith("/")) {
+		let rootUrl = new URL(linkUrl).origin;
+		let imgLink = `${rootUrl}/${imgUrl}`;
+		return imgLink;
+	} else {
+		return imgUrl;
+	}
+};
+
 const createLinkElement = (url, title, desc, img) => {
 	const link = `
 		<a
@@ -103,24 +114,17 @@ const getData = (url) => {
 			);
 
 			// collect image sources
-			getExistingAttribute(
-				dom,
-				"meta[property='og:image']",
-				"content",
-				imgSources
-			);
+			if (dom.querySelector("meta[property='og:image']")) {
+				let el = dom.querySelector("meta[property='og:image']");
+
+				imgSources.push(absolutizeRelativeUrl(el.getAttribute("content"), url));
+			}
 
 			[
 				...dom.querySelectorAll("link[rel='apple-touch-icon']"),
 				...dom.querySelectorAll("link[rel='icon']")
 			].forEach((el) => {
-				if (el.href.startsWith(window.location.origin)) {
-					let imgLink = `${window.location.origin}/${el.getAttribute("href")}`;
-					imgSources.push(imgLink);
-					return;
-				}
-
-				imgSources.push(el.href);
+				imgSources.push(absolutizeRelativeUrl(el.getAttribute("href"), url));
 			});
 
 			let title = titleSources.length > 0 ? titleSources[0] : url;
