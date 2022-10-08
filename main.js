@@ -26,6 +26,16 @@ let descSources = [];
 // image sources
 let imgSources = [];
 
+// truncate string at full words
+// credit: 1loc.dev
+const truncate = (str, max, suffix) =>
+	str.length < max
+		? str
+		: `${str.substr(
+				0,
+				str.substr(0, max - suffix.length).lastIndexOf(" ")
+		  )}${suffix}`;
+
 // if element exists, returns wanted attribute value
 const getExistingAttribute = (dom, elementSelector, attr, list) => {
 	if (dom.querySelector(elementSelector)) {
@@ -128,7 +138,8 @@ const getData = (url) => {
 			});
 
 			let title = titleSources.length > 0 ? titleSources[0] : url;
-			let desc = descSources.length > 0 ? descSources[0] : "";
+			let desc =
+				descSources.length > 0 ? truncate(descSources[0], 200, "...") : "";
 			let img =
 				imgSources.length > 0 ? imgSources[0] : "https://fakeimg.pl/300/";
 
